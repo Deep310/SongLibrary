@@ -14,7 +14,7 @@ public class SongLib extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
 		FXMLLoader loader = new FXMLLoader();
-		loader.setLocation(getClass().getResource("../view/hellooFX.fxml"));
+		loader.setLocation(getClass().getResource("../View/hellooFX.fxml"));
 		GridPane root = (GridPane)loader.load();
 		
 		// Set up controller

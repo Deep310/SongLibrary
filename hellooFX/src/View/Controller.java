@@ -31,7 +31,7 @@ public class Controller {
 	@FXML Button edit;
 	@FXML Button add;
 	@FXML Button delete;
-	@FXML Text song;
+	@FXML Text name;
 	@FXML Text artist;
 	@FXML Text album;
 	@FXML Text year;
@@ -65,7 +65,7 @@ public class Controller {
 			ArrayList<Song> songs = new ArrayList<Song>();
 			
 			for(int i=0; i<song_info.length(); i++) {
-				Song fromstorage =new Song(song_info.getJSONObject(i).getString("name"),song_info.getJSONObject(i).getString("artist"), song_info.getJSONObject(i).getString("album"),song_info.getJSONObject(i).getInt("year"));
+				Song fromstorage = new Song(song_info.getJSONObject(i).getString("name"),song_info.getJSONObject(i).getString("artist"), song_info.getJSONObject(i).getString("album"),song_info.getJSONObject(i).getInt("year"));
 				songs.add(fromstorage);
 			}
 			
@@ -73,7 +73,8 @@ public class Controller {
 			// create ObservableList from an ArrayList
 			obsList = FXCollections.observableArrayList(songs);
 			listView.setItems(obsList);
-			first=true;
+			first = true;
+			
 			// preselect first one
 			listView.getSelectionModel().select(0);
 			
@@ -88,24 +89,42 @@ public class Controller {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		Song firstSong = listView.getSelectionModel().getSelectedItem();
-		if(firstSong==null) {//no items left
-			song.setText("");
+		if(firstSong == null) {
+			//no items left
+			name.setText("");
 			artist.setText("");
 			album.setText("");
 			year.setText("");
 			
-		}else {
-		// Pre-set the data to the first selected.
+		}
+		else {
+			// Pre-set the data to the first selected.
 			
-			song.setText(firstSong.getName());
+//			if(firstSong.getName().equals("")) {
+//				name.setText("Not defined");
+//			}else {
+//				name.setText(firstSong.getName());
+//			}
+			
+			name.setText(firstSong.getName());
+			
+			if(firstSong.getArtist().equals("")) {
+				artist.setText("Not defined");
+			}else {
+				artist.setText(firstSong.getArtist());
+			}
+			
 			artist.setText(firstSong.getArtist());
+			
 			if(firstSong.getAlbum().equals("")) {
 				album.setText("Not defined");
 			}else {
 				album.setText(firstSong.getAlbum());
 			}
-			if(firstSong.getYear()==-1) {
+			
+			if(firstSong.getYear() == -1) {
 				year.setText("Not defined");
 			}else {
 				year.setText(Integer.toString(firstSong.getYear()));
@@ -134,7 +153,7 @@ public class Controller {
 	
 	public void editAction(ActionEvent e) throws IOException {
 		if(first) {//if its on a new item and edit hasn't been clicked before
-			String currentSong = song.getText();
+			String currentSong = name.getText();
 			String currentArtist = artist.getText();
 			String currentAlbum = album.getText();
 			String currentYear = year.getText();
@@ -193,20 +212,22 @@ public class Controller {
 	}
 	
 	public void addAction(ActionEvent e) throws IOException {
-		int counter=0;
-		if(songField.getText().isEmpty() ||artistField.getText().isEmpty()) {
+		int counter = 0;
+		if(songField.getText().isEmpty() || artistField.getText().isEmpty()) {
 			createErrorAlert("Error During Add", "Must add SongName and Artist");
 			return;
 		}
-		while(counter<obsList.size()) {
-			if(obsList.get(counter).getName().equalsIgnoreCase(songField.getText()) &&obsList.get(counter).getArtist().equalsIgnoreCase(artistField.getText())) {
+		
+		while(counter < obsList.size()) {
+			if(obsList.get(counter).getName().equalsIgnoreCase(songField.getText()) && obsList.get(counter).getArtist().equalsIgnoreCase(artistField.getText())) {
 				createErrorAlert("Error During Add", "Song already exists!");
 				return;
 			}
 			counter++;
 		}
+		
 		if(yearField.getText().isEmpty()) {
-			Song newadd=new Song(songField.getText(),artistField.getText(),albumField.getText(),-1);
+			Song newadd = new Song(songField.getText(),artistField.getText(),albumField.getText(),-1);
 			obsList.add(newadd);
 			listView.getSelectionModel().clearSelection();
 			obsList.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
@@ -232,7 +253,9 @@ public class Controller {
 	public void deleteAction(ActionEvent e) throws IOException {
 		if(obsList.size() == 0) {
 			createErrorAlert("Error", "No songs to delete!");
-		} else {
+		} 
+		
+		else {
 			int temp=obsList.indexOf(listView.getSelectionModel().getSelectedItem());
 			obsList.remove(listView.getSelectionModel().getSelectedItem());
 			listView.getSelectionModel().select(temp);
@@ -240,28 +263,30 @@ public class Controller {
 		
 			if(item==null) {//no items left
 				saveSongs(obsList);
-				song.setText("");
+				name.setText("");
 				artist.setText("");
 				album.setText("");
 				year.setText("");
 				return;
 			}
+			
 			first=true;
 	
-			song.setText(item.getName());
+			name.setText(item.getName());
 			artist.setText(item.getArtist());
+			
 			if(item.getAlbum().equals("")) {
 				album.setText("Not defined");
 			}else {
 				album.setText(item.getAlbum());
 			}
+			
 			if(item.getYear()==-1) {
 				year.setText("Not defined");
 			}else {
 				year.setText(Integer.toString(item.getYear()));
 			}
-			
-			
+						
 			saveSongs(obsList);
 		}
 		
@@ -283,7 +308,7 @@ public class Controller {
 		artistField.setText("");
 		albumField.setText("");
 		yearField.setText("");
-		song.setText(item.getName());
+		name.setText(item.getName());
 		artist.setText(item.getArtist());
 		if(item.getAlbum().equals("")) {
 			album.setText("Not defined");
