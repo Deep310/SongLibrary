@@ -11,18 +11,20 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonType;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Scanner;
 
+/* using Json-Java library to read from and write to Json file */
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import MainApplication.Song;
 
@@ -41,7 +43,7 @@ public class Controller {
 	@FXML TextField yearField;
 	
 	
-	private ObservableList<Song> obsList;
+	private ObservableList<Song> obListSongs;
 	private boolean	first;
 
 	public void start(Stage mainStage) {
@@ -49,30 +51,20 @@ public class Controller {
 		// Open JSON content as string
 		try {
 			String content = readFile("src/SongData/songs.json");
-			/* ORIGINAL WAY OF DOING IT
-			JSONObject song_obj = new JSONObject(content);
-			JSONArray song_info = song_obj.getJSONArray("songs");
 			
+			
+			JSONArray songArray = new JSONArray(content);
 			ArrayList<Song> songs = new ArrayList<Song>();
 			
-			
-			for(int i=0; i<song_info.length(); i++) {
-				Song fromstorage =new Song(song_info.getJSONObject(i).getString("name"),song_info.getJSONObject(i).getString("artist"), song_info.getJSONObject(i).getString("album"),song_info.getJSONObject(i).getInt("Year"));
-				songs.add(fromstorage);
-			} */
-			
-			JSONArray song_info = new JSONArray(content);
-			ArrayList<Song> songs = new ArrayList<Song>();
-			
-			for(int i=0; i<song_info.length(); i++) {
-				Song fromstorage = new Song(song_info.getJSONObject(i).getString("name"),song_info.getJSONObject(i).getString("artist"), song_info.getJSONObject(i).getString("album"),song_info.getJSONObject(i).getInt("year"));
+			for(int i=0; i<songArray.length(); i++) {
+				Song fromstorage = new Song(songArray.getJSONObject(i).getString("name"),songArray.getJSONObject(i).getString("artist"), songArray.getJSONObject(i).getString("album"),songArray.getJSONObject(i).getInt("year"));
 				songs.add(fromstorage);
 			}
 			
 			
 			// create ObservableList from an ArrayList
-			obsList = FXCollections.observableArrayList(songs);
-			listView.setItems(obsList);
+			obListSongs = FXCollections.observableArrayList(songs);
+			listView.setItems(obListSongs);
 			first = true;
 			
 			// preselect first one
@@ -100,13 +92,6 @@ public class Controller {
 			
 		}
 		else {
-			// Pre-set the data to the first selected.
-			
-//			if(firstSong.getName().equals("")) {
-//				name.setText("Not defined");
-//			}else {
-//				name.setText(firstSong.getName());
-//			}
 			
 			name.setText(firstSong.getName());
 			
@@ -120,13 +105,15 @@ public class Controller {
 			
 			if(firstSong.getAlbum().equals("")) {
 				album.setText("Not defined");
-			}else {
+			}
+			else {
 				album.setText(firstSong.getAlbum());
 			}
 			
 			if(firstSong.getYear() == -1) {
 				year.setText("Not defined");
-			}else {
+			}
+			else {
 				year.setText(Integer.toString(firstSong.getYear()));
 			}
 		}
@@ -134,7 +121,6 @@ public class Controller {
 	}
 	
 	private String readFile(String path) throws IOException {
-		// Open file
 		File file = new File(path);
 		
 		// Build a string from file's contents
@@ -148,11 +134,10 @@ public class Controller {
 		} 
 	}
 	
-	
-	/* ADD, EDIT, DELETE BUTTON METHODS */
-	
+		
 	public void editAction(ActionEvent e) throws IOException {
-		if(first) {//if its on a new item and edit hasn't been clicked before
+		if(first) {
+			//if its on a new item and edit hasn't been clicked before
 			String currentSong = name.getText();
 			String currentArtist = artist.getText();
 			String currentAlbum = album.getText();
@@ -162,48 +147,59 @@ public class Controller {
 			edit.setText("Save");
 			add.setDisable(true);
 			delete.setDisable(true);
+			
 			if(currentAlbum.equals("Not defined")) {
 				currentAlbum="";
 			}
+			
 			if(currentYear.equals("Not defined")) {
 				currentYear="";
 			}
+			
 			albumField.setText(currentAlbum);
 			yearField.setText(currentYear);
 			first=false;
-		}else {
+		}
+		else {
 			int counter=0;
-			if(songField.getText().isEmpty() ||artistField.getText().isEmpty()) {
+			if(songField.getText().isEmpty() || artistField.getText().isEmpty()) {
 				createErrorAlert("Error During Edit", "Must add song name and artist!");
 				return;
 			}
-			while(counter<obsList.size()) {
-				if(obsList.get(counter).getName().equalsIgnoreCase(songField.getText()) &&obsList.get(counter).getArtist().equalsIgnoreCase(artistField.getText())&&counter!=obsList.indexOf(listView.getSelectionModel().getSelectedItem())) {
+			
+			while(counter<obListSongs.size()) {
+				if(obListSongs.get(counter).getName().equalsIgnoreCase(songField.getText()) &&obListSongs.get(counter).getArtist().equalsIgnoreCase(artistField.getText())&&counter!=obListSongs.indexOf(listView.getSelectionModel().getSelectedItem())) {
 					createErrorAlert("Error During Edit", "Already Entered");
 					return;
 				}
+				
 				counter++;
 			}
+			
 			if(yearField.getText().isEmpty()) {
-				Song newadd=new Song(songField.getText(),artistField.getText(),albumField.getText(),-1);
-				obsList.remove(listView.getSelectionModel().getSelectedItem());
-				obsList.add(newadd);
-				listView.getSelectionModel().clearSelection();
-				obsList.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
-				listView.getSelectionModel().select(obsList.indexOf(newadd));
-			}else {
-				try{	
-					Song newadd=new Song(songField.getText(),artistField.getText(),albumField.getText(),Integer.parseInt(yearField.getText()));
-					obsList.remove(listView.getSelectionModel().getSelectedItem());
-					obsList.add(newadd);
-					obsList.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
 				
-				}catch (NumberFormatException f) {
+				Song newadd=new Song(songField.getText().trim(),artistField.getText().trim(),albumField.getText().trim(),-1);
+				obListSongs.remove(listView.getSelectionModel().getSelectedItem());
+				obListSongs.add(newadd);
+				listView.getSelectionModel().clearSelection();
+				obListSongs.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
+				listView.getSelectionModel().select(obListSongs.indexOf(newadd));
+			}
+			else {
+				try{	
+					Song newadd=new Song(songField.getText().trim(),artistField.getText().trim(),albumField.getText().trim(),Integer.parseInt(yearField.getText().trim()));
+					obListSongs.remove(listView.getSelectionModel().getSelectedItem());
+					obListSongs.add(newadd);
+					obListSongs.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
+				
+				}
+				catch (NumberFormatException f) {
 					createErrorAlert("Error During Edit", "Year must be an integer!");
 					return;
 				}
 			}
-			saveSongs(obsList);
+			
+			saveSongs(obListSongs);
 			edit.setText("Edit");
 			add.setDisable(false);
 			delete.setDisable(false);
@@ -214,12 +210,12 @@ public class Controller {
 	public void addAction(ActionEvent e) throws IOException {
 		int counter = 0;
 		if(songField.getText().isEmpty() || artistField.getText().isEmpty()) {
-			createErrorAlert("Error During Add", "Must add SongName and Artist");
+			createErrorAlert("Error During Add", "Must add Song name and Artist name!");
 			return;
 		}
 		
-		while(counter < obsList.size()) {
-			if(obsList.get(counter).getName().equalsIgnoreCase(songField.getText()) && obsList.get(counter).getArtist().equalsIgnoreCase(artistField.getText())) {
+		while(counter < obListSongs.size()) {
+			if(obListSongs.get(counter).getName().equalsIgnoreCase(songField.getText()) && obListSongs.get(counter).getArtist().equalsIgnoreCase(artistField.getText())) {
 				createErrorAlert("Error During Add", "Song already exists!");
 				return;
 			}
@@ -227,67 +223,137 @@ public class Controller {
 		}
 		
 		if(yearField.getText().isEmpty()) {
-			Song newadd = new Song(songField.getText(),artistField.getText(),albumField.getText(),-1);
-			obsList.add(newadd);
-			listView.getSelectionModel().clearSelection();
-			obsList.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
-			listView.getSelectionModel().select(obsList.indexOf(newadd));
 			
-			saveSongs(obsList);
-			return;
+			Alert alert = new Alert(AlertType.CONFIRMATION);
+			alert.setTitle("Confirmation Dialog");
+			alert.setHeaderText(null);
+			alert.setContentText("Are you sure?");
+//			alert.showAndWait();
 			
+			ButtonType buttonTypeOkay = new ButtonType("OK");
+			ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
+
+			alert.getButtonTypes().setAll(buttonTypeOkay, buttonTypeCancel);
+
+			Optional<ButtonType> result = alert.showAndWait();
+			if (result.get() == buttonTypeOkay){
+			    // ... user chose "OK"
+				Song newadd = new Song(songField.getText().trim(),artistField.getText().trim(),albumField.getText().trim(),-1);
+				obListSongs.add(newadd);
+				listView.getSelectionModel().clearSelection();
+				obListSongs.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
+				listView.getSelectionModel().select(obListSongs.indexOf(newadd));
+				
+				saveSongs(obListSongs);
+				return;
+				
+			} else {
+			    // ... user chose CANCEL
+				alert.close();
+			}
 		}
-		try{	
-			Song newadd=new Song(songField.getText(),artistField.getText(),albumField.getText(),Integer.parseInt(yearField.getText()));
-			obsList.add(newadd);
-			obsList.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
-			listView.getSelectionModel().select(obsList.indexOf(newadd));
-		}catch (NumberFormatException f) {
-			createErrorAlert("Error During Add", "Year must be an integer!");
-			return;
+		else {
+			try{
+				
+				Alert alert = new Alert(AlertType.CONFIRMATION);
+				alert.setTitle("Confirmation Dialog");
+				alert.setHeaderText(null);
+				alert.setContentText("Are you sure?");
+//				alert.showAndWait();
+				
+				ButtonType buttonTypeOkay = new ButtonType("OK");
+				ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
+
+				alert.getButtonTypes().setAll(buttonTypeOkay, buttonTypeCancel);
+
+				Optional<ButtonType> result = alert.showAndWait();
+				if (result.get() == buttonTypeOkay){
+				    // ... user chose "OK"
+					Song newadd=new Song(songField.getText().trim(),artistField.getText().trim(),albumField.getText().trim(),Integer.parseInt(yearField.getText()));
+					obListSongs.add(newadd);
+					listView.getSelectionModel().clearSelection();
+					obListSongs.sort((a,b) -> a.getName().compareToIgnoreCase(b.getName())==0 ? a.getArtist().compareToIgnoreCase(b.getArtist()) : a.getName().compareToIgnoreCase(b.getName()));
+					listView.getSelectionModel().select(obListSongs.indexOf(newadd));
+					
+					saveSongs(obListSongs);
+					return;
+					
+				} else {
+				    // ... user chose CANCEL or closed the dialog
+					alert.close();
+				}
+			}
+			catch (NumberFormatException f) {
+				createErrorAlert("Error During Add", "Year must be an integer!");
+				return;
+			}
+			
+			saveSongs(obListSongs);
 		}
 		
-		saveSongs(obsList);
+		
 	}
 	
 	public void deleteAction(ActionEvent e) throws IOException {
-		if(obsList.size() == 0) {
+		if(obListSongs.size() == 0) {
 			createErrorAlert("Error", "No songs to delete!");
 		} 
 		
 		else {
-			int temp=obsList.indexOf(listView.getSelectionModel().getSelectedItem());
-			obsList.remove(listView.getSelectionModel().getSelectedItem());
-			listView.getSelectionModel().select(temp);
-			Song item = listView.getSelectionModel().getSelectedItem();
+			Alert alert = new Alert(AlertType.CONFIRMATION);
+			alert.setTitle("Confirmation Dialog");
+			alert.setHeaderText(null);
+			alert.setContentText("Are you sure?");
+//			alert.showAndWait();
+			
+			ButtonType buttonTypeOkay = new ButtonType("OK");
+			ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
+
+			alert.getButtonTypes().setAll(buttonTypeOkay, buttonTypeCancel);
+
+			Optional<ButtonType> result = alert.showAndWait();
+			if (result.get() == buttonTypeOkay){
+			    // ... user chose "OK"
+				int temp=obListSongs.indexOf(listView.getSelectionModel().getSelectedItem());
+				obListSongs.remove(listView.getSelectionModel().getSelectedItem());
+				listView.getSelectionModel().select(temp);
+				Song item = listView.getSelectionModel().getSelectedItem();
+			
+				if(item==null) {
+					//no items left
+					saveSongs(obListSongs);
+					name.setText("");
+					artist.setText("");
+					album.setText("");
+					year.setText("");
+					return;
+				}
+				
+				first=true;
 		
-			if(item==null) {//no items left
-				saveSongs(obsList);
-				name.setText("");
-				artist.setText("");
-				album.setText("");
-				year.setText("");
-				return;
+				name.setText(item.getName());
+				artist.setText(item.getArtist());
+				
+				if(item.getAlbum().equals("")) {
+					album.setText("Not defined");
+				}else {
+					album.setText(item.getAlbum());
+				}
+				
+				if(item.getYear()==-1) {
+					year.setText("Not defined");
+				}else {
+					year.setText(Integer.toString(item.getYear()));
+				}
+							
+				saveSongs(obListSongs);
+				
+			} else {
+			    // ... user chose CANCEL or closed the dialog
+				alert.close();
 			}
 			
-			first=true;
-	
-			name.setText(item.getName());
-			artist.setText(item.getArtist());
 			
-			if(item.getAlbum().equals("")) {
-				album.setText("Not defined");
-			}else {
-				album.setText(item.getAlbum());
-			}
-			
-			if(item.getYear()==-1) {
-				year.setText("Not defined");
-			}else {
-				year.setText(Integer.toString(item.getYear()));
-			}
-						
-			saveSongs(obsList);
 		}
 		
 	}
@@ -301,20 +367,24 @@ public class Controller {
 		add.setDisable(false);
 		delete.setDisable(false);
 		edit.setText("Edit");
+		
 		if(item==null) {
 			return;
 		}
+		
 		songField.setText("");
 		artistField.setText("");
 		albumField.setText("");
 		yearField.setText("");
 		name.setText(item.getName());
 		artist.setText(item.getArtist());
+		
 		if(item.getAlbum().equals("")) {
 			album.setText("Not defined");
 		}else {
 			album.setText(item.getAlbum());
 		}
+		
 		if(item.getYear()==-1) {
 			year.setText("Not defined");
 		}else {
@@ -322,7 +392,7 @@ public class Controller {
 		}
 	}
 	
-	/* Error Functions */
+	/* Error pop-ups */
 	public void createErrorAlert(String errorTitle, String errorMessage) {
 		Alert alert = new Alert(AlertType.ERROR);
 		alert.setTitle(errorTitle);
@@ -331,12 +401,34 @@ public class Controller {
 		alert.showAndWait();
 	}
 	
+	/*  Confirmation pop-ups */
+	public void createConfirmationAlert(String msgTitle, String actualMsg) {
+		Alert alert = new Alert(AlertType.CONFIRMATION);
+		alert.setTitle(msgTitle);
+		alert.setHeaderText(null);
+		alert.setContentText(actualMsg);
+		alert.showAndWait();
+		
+		ButtonType buttonTypeOkay = new ButtonType("OK");
+		ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
+
+		alert.getButtonTypes().setAll(buttonTypeOkay, buttonTypeCancel);
+
+		Optional<ButtonType> result = alert.showAndWait();
+		if (result.get() == buttonTypeOkay){
+		    // ... user chose "One"
+			
+		} else {
+		    // ... user chose CANCEL or closed the dialog
+		}
+	}
+	
 	public void saveSongs(ObservableList<Song> songList) throws IOException {
-		JSONArray songs = new JSONArray(obsList);
+		JSONArray songs = new JSONArray(obListSongs);
 		try (FileWriter file = new FileWriter("src/SongData/songs.json")) {
 			file.write(songs.toString());
-			System.out.println("Successfully Copied JSON Object to File...");
-			System.out.println("\nJSON Object: " + songs);
+//			System.out.println("Successfully Copied JSON Object to File...");
+//			System.out.println("\nJSON Object: " + songs);
 		}
 	}
 }
